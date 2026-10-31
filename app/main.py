@@ -1,3 +1,5 @@
+from typing import Annotated, TypeAlias
+
 from fastapi import Depends, FastAPI, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -13,6 +15,7 @@ _repositorio = EquipoRepository()
 def get_service() -> EquipoService:
     return EquipoService(_repositorio)
 
+ServicioDep: TypeAlias = Annotated[EquipoService, Depends(get_service)]
 
 class EquipoCrear(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -38,9 +41,7 @@ class EquipoRespuesta(BaseModel):
     response_model=EquipoRespuesta,
     status_code=status.HTTP_201_CREATED,
 )
-def registrar_equipo(
-    datos: EquipoCrear, servicio: EquipoService = Depends(get_service)
-):
+def registrar_equipo(datos: EquipoCrear, servicio: ServicioDep):
     try:
         return servicio.registrar(
             datos.tipo, datos.marca_modelo, datos.numero_serie
