@@ -1,0 +1,53 @@
+from typing import Annotated, TypeAlias
+
+from fastapi import Depends, FastAPI, HTTPException, status
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.models import EstadoEquipo, TipoEquipo
+from app.repository import EquipoRepository
+from app.service import EquipoService, SerieDuplicadaError
+
+app = FastAPI(title="Inventario TI", version="0.1.0")
+
+_repositorio = EquipoRepository()
+
+
+def get_service() -> EquipoService:
+    return EquipoService(_repositorio)
+
+ServicioDep: TypeAlias = Annotated[EquipoService, Depends(get_service)]
+
+class EquipoCrear(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    tipo: TipoEquipo
+    marca_modelo: str = Field(min_length=1, max_length=100)
+    numero_serie: str = Field(min_length=1, max_length=50)
+
+
+class EquipoRespuesta(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    tipo: TipoEquipo
+    marca_modelo: str
+    numero_serie: str
+    estado: EstadoEquipo
+    asignado_a: str | None
+
+
+@app.post(
+    "/equipos",
+    response_model=EquipoRespuesta,
+    status_code=status.HTTP_201_CREATED,
+)
+def registrar_equipo(datos: EquipoCrear, servicio: ServicioDep):
+    try:
+        return servicio.registrar(
+            datos.tipo, datos.marca_modelo, datos.numero_serie
+        )
+    except SerieDuplicadaError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Ya existe un equipo con ese número de serie",
+        )
