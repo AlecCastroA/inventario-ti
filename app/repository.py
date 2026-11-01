@@ -30,3 +30,7 @@ class EquipoRepository:
 
     def listar(self) -> list[Equipo]:
         return list(self._equipos.values())
+
+    def actualizar(self, equipo: Equipo) -> Equipo:
+        self._equipos[equipo.id] = equipo
+        return equipo

@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.models import EstadoEquipo, TipoEquipo
 from app.repository import EquipoRepository
 from app.service import (
+    EquipoNoDisponibleError,
     EquipoNoEncontradoError,
     EquipoService,
     SerieDuplicadaError,
@@ -28,6 +29,10 @@ class EquipoCrear(BaseModel):
     marca_modelo: str = Field(min_length=1, max_length=100)
     numero_serie: str = Field(min_length=1, max_length=50)
 
+class AsignacionCrear(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    usuario: str = Field(min_length=1, max_length=100)
 
 class EquipoRespuesta(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -69,4 +74,21 @@ def obtener_equipo(equipo_id: int, servicio: ServicioDep):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Equipo no encontrado",
+        )
+
+@app.post("/equipos/{equipo_id}/asignar", response_model=EquipoRespuesta)
+def asignar_equipo(
+    equipo_id: int, datos: AsignacionCrear, servicio: ServicioDep
+):
+    try:
+        return servicio.asignar(equipo_id, datos.usuario)
+    except EquipoNoEncontradoError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Equipo no encontrado",
+        )
+    except EquipoNoDisponibleError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="El equipo no está disponible para asignación",
         )
