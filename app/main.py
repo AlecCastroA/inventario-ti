@@ -5,7 +5,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models import EstadoEquipo, TipoEquipo
 from app.repository import EquipoRepository
-from app.service import EquipoService, SerieDuplicadaError
+from app.service import (
+    EquipoNoEncontradoError,
+    EquipoService,
+    SerieDuplicadaError,
+)
 
 app = FastAPI(title="Inventario TI", version="0.1.0")
 
@@ -36,11 +40,7 @@ class EquipoRespuesta(BaseModel):
     asignado_a: str | None
 
 
-@app.post(
-    "/equipos",
-    response_model=EquipoRespuesta,
-    status_code=status.HTTP_201_CREATED,
-)
+@app.post("/equipos", response_model=EquipoRespuesta, status_code=status.HTTP_201_CREATED,)
 def registrar_equipo(datos: EquipoCrear, servicio: ServicioDep):
     try:
         return servicio.registrar(
@@ -50,4 +50,23 @@ def registrar_equipo(datos: EquipoCrear, servicio: ServicioDep):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Ya existe un equipo con ese número de serie",
+        )
+
+@app.get("/equipos", response_model=list[EquipoRespuesta])
+def listar_equipos(
+    servicio: ServicioDep,
+    tipo: TipoEquipo | None = None,
+    estado: EstadoEquipo | None = None,
+):
+    return servicio.listar(tipo, estado)
+
+
+@app.get("/equipos/{equipo_id}", response_model=EquipoRespuesta)
+def obtener_equipo(equipo_id: int, servicio: ServicioDep):
+    try:
+        return servicio.obtener(equipo_id)
+    except EquipoNoEncontradoError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Equipo no encontrado",
         )
