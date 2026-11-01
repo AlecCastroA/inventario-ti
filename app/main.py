@@ -3,6 +3,7 @@ from typing import Annotated, TypeAlias
 from fastapi import Depends, FastAPI, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.config import obtener_entorno
 from app.models import EstadoEquipo, TipoEquipo
 from app.repository import EquipoRepository
 from app.service import (
@@ -108,3 +109,7 @@ def dar_de_baja_equipo(equipo_id: int, servicio: ServicioDep):
             status_code=status.HTTP_409_CONFLICT,
             detail="El equipo ya fue dado de baja",
         )
+
+@app.get("/salud")
+def salud():
+    return {"estado": "ok", "entorno": obtener_entorno()}
