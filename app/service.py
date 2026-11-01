@@ -8,6 +8,9 @@ class SerieDuplicadaError(Exception):
 class EquipoNoEncontradoError(Exception):
     """No existe un equipo con ese ID."""
 
+class EquipoNoDisponibleError(Exception):
+    """El equipo no está disponible para asignarse."""
+
 class EquipoService:
     """Reglas de negocio del inventario."""
 
@@ -38,3 +41,11 @@ class EquipoService:
         if equipo is None:
             raise EquipoNoEncontradoError(equipo_id)
         return equipo
+
+    def asignar(self, equipo_id: int, usuario: str) -> Equipo:
+        equipo = self.obtener(equipo_id)
+        if equipo.estado != EstadoEquipo.DISPONIBLE:
+            raise EquipoNoDisponibleError(equipo.estado.value)
+        equipo.estado = EstadoEquipo.ASIGNADO
+        equipo.asignado_a = usuario
+        return self._repo.actualizar(equipo)

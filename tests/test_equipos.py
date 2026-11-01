@@ -95,3 +95,39 @@ def test_obtener_equipo_por_id(client):
 def test_obtener_equipo_inexistente_devuelve_404(client):
     respuesta = client.get("/equipos/999")
     assert respuesta.status_code == 404
+
+def test_asignar_equipo_disponible(client):
+    client.post("/equipos", json=_equipo())
+    respuesta = client.post("/equipos/1/asignar", json={"usuario": "Ana Torres"})
+    assert respuesta.status_code == 200
+    cuerpo = respuesta.json()
+    assert cuerpo["estado"] == "asignado"
+    assert cuerpo["asignado_a"] == "Ana Torres"
+
+
+def test_asignar_equipo_ya_asignado_devuelve_409(client):
+    client.post("/equipos", json=_equipo())
+    client.post("/equipos/1/asignar", json={"usuario": "Ana Torres"})
+    respuesta = client.post("/equipos/1/asignar", json={"usuario": "Luis Rojas"})
+    assert respuesta.status_code == 409
+
+
+def test_asignar_equipo_inexistente_devuelve_404(client):
+    respuesta = client.post("/equipos/999/asignar", json={"usuario": "Ana Torres"})
+    assert respuesta.status_code == 404
+
+
+def test_asignar_con_usuario_vacio_devuelve_422(client):
+    client.post("/equipos", json=_equipo())
+    respuesta = client.post("/equipos/1/asignar", json={"usuario": "   "})
+    assert respuesta.status_code == 422
+
+
+def test_filtrar_por_estado_asignado(client):
+    client.post("/equipos", json=_equipo(numero_serie="SN-001"))
+    client.post("/equipos", json=_equipo(numero_serie="SN-002"))
+    client.post("/equipos/1/asignar", json={"usuario": "Ana Torres"})
+    respuesta = client.get("/equipos", params={"estado": "asignado"})
+    cuerpo = respuesta.json()
+    assert len(cuerpo) == 1
+    assert cuerpo[0]["numero_serie"] == "SN-001"
