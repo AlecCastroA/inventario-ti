@@ -177,3 +177,15 @@ def test_filtrar_por_estado_baja(client):
     cuerpo = respuesta.json()
     assert len(cuerpo) == 1
     assert cuerpo[0]["numero_serie"] == "SN-002"
+
+def test_salud_devuelve_ok_y_el_entorno_configurado(client, monkeypatch):
+    monkeypatch.setenv("APP_ENV", "prueba")
+    respuesta = client.get("/salud")
+    assert respuesta.status_code == 200
+    assert respuesta.json() == {"estado": "ok", "entorno": "prueba"}
+
+
+def test_salud_usa_desarrollo_por_defecto(client, monkeypatch):
+    monkeypatch.delenv("APP_ENV", raising=False)
+    respuesta = client.get("/salud")
+    assert respuesta.json()["entorno"] == "desarrollo"

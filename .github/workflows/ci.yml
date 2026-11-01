@@ -9,6 +9,8 @@ on:
 jobs:
   verificar:
     runs-on: ubuntu-latest
+    env:
+      APP_ENV: prueba
 
     steps:
       - name: Descargar el código
@@ -28,3 +30,6 @@ jobs:
 
       - name: Ejecutar pruebas con pytest
         run: pytest -v
+
+      - name: Validar sintaxis del script de ejecución
+        run: bash -n scripts/ejecutar.sh
