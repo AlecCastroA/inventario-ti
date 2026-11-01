@@ -47,3 +47,51 @@ def test_registrar_con_serie_vacia_devuelve_422(client):
 def test_registrar_con_tipo_invalido_devuelve_422(client):
     respuesta = client.post("/equipos", json=_equipo(tipo="tostadora"))
     assert respuesta.status_code == 422
+
+def test_listar_devuelve_lista_vacia_al_inicio(client):
+    respuesta = client.get("/equipos")
+    assert respuesta.status_code == 200
+    assert respuesta.json() == []
+
+
+def test_listar_devuelve_todos_los_equipos(client):
+    client.post("/equipos", json=_equipo(numero_serie="SN-001"))
+    client.post("/equipos", json=_equipo(numero_serie="SN-002"))
+    respuesta = client.get("/equipos")
+    assert len(respuesta.json()) == 2
+
+
+def test_filtrar_por_tipo(client):
+    client.post("/equipos", json=_equipo(numero_serie="SN-001", tipo="laptop"))
+    client.post(
+        "/equipos", json=_equipo(numero_serie="SN-002", tipo="impresora")
+    )
+    respuesta = client.get("/equipos", params={"tipo": "impresora"})
+    cuerpo = respuesta.json()
+    assert len(cuerpo) == 1
+    assert cuerpo[0]["tipo"] == "impresora"
+
+
+def test_filtrar_por_estado(client):
+    client.post("/equipos", json=_equipo())
+    disponibles = client.get("/equipos", params={"estado": "disponible"})
+    de_baja = client.get("/equipos", params={"estado": "baja"})
+    assert len(disponibles.json()) == 1
+    assert de_baja.json() == []
+
+
+def test_filtro_con_valor_invalido_devuelve_422(client):
+    respuesta = client.get("/equipos", params={"tipo": "tostadora"})
+    assert respuesta.status_code == 422
+
+
+def test_obtener_equipo_por_id(client):
+    client.post("/equipos", json=_equipo())
+    respuesta = client.get("/equipos/1")
+    assert respuesta.status_code == 200
+    assert respuesta.json()["numero_serie"] == "SN-001"
+
+
+def test_obtener_equipo_inexistente_devuelve_404(client):
+    respuesta = client.get("/equipos/999")
+    assert respuesta.status_code == 404
