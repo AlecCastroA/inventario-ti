@@ -9,6 +9,7 @@ from app.service import (
     EquipoNoDisponibleError,
     EquipoNoEncontradoError,
     EquipoService,
+    EquipoYaDeBajaError,
     SerieDuplicadaError,
 )
 
@@ -91,4 +92,19 @@ def asignar_equipo(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="El equipo no está disponible para asignación",
+        )
+
+@app.post("/equipos/{equipo_id}/baja", response_model=EquipoRespuesta)
+def dar_de_baja_equipo(equipo_id: int, servicio: ServicioDep):
+    try:
+        return servicio.dar_de_baja(equipo_id)
+    except EquipoNoEncontradoError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Equipo no encontrado",
+        )
+    except EquipoYaDeBajaError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="El equipo ya fue dado de baja",
         )
