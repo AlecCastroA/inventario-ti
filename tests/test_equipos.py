@@ -131,3 +131,49 @@ def test_filtrar_por_estado_asignado(client):
     cuerpo = respuesta.json()
     assert len(cuerpo) == 1
     assert cuerpo[0]["numero_serie"] == "SN-001"
+
+def test_dar_de_baja_equipo_disponible(client):
+    client.post("/equipos", json=_equipo())
+    respuesta = client.post("/equipos/1/baja")
+    assert respuesta.status_code == 200
+    assert respuesta.json()["estado"] == "baja"
+
+
+def test_dar_de_baja_equipo_asignado_libera_al_usuario(client):
+    client.post("/equipos", json=_equipo())
+    client.post("/equipos/1/asignar", json={"usuario": "Ana Torres"})
+    respuesta = client.post("/equipos/1/baja")
+    cuerpo = respuesta.json()
+    assert cuerpo["estado"] == "baja"
+    assert cuerpo["asignado_a"] is None
+
+
+def test_dar_de_baja_dos_veces_devuelve_409(client):
+    client.post("/equipos", json=_equipo())
+    client.post("/equipos/1/baja")
+    respuesta = client.post("/equipos/1/baja")
+    assert respuesta.status_code == 409
+
+
+def test_dar_de_baja_equipo_inexistente_devuelve_404(client):
+    respuesta = client.post("/equipos/999/baja")
+    assert respuesta.status_code == 404
+
+
+def test_asignar_equipo_de_baja_devuelve_409(client):
+    client.post("/equipos", json=_equipo())
+    client.post("/equipos/1/baja")
+    respuesta = client.post(
+        "/equipos/1/asignar", json={"usuario": "Ana Torres"}
+    )
+    assert respuesta.status_code == 409
+
+
+def test_filtrar_por_estado_baja(client):
+    client.post("/equipos", json=_equipo(numero_serie="SN-001"))
+    client.post("/equipos", json=_equipo(numero_serie="SN-002"))
+    client.post("/equipos/2/baja")
+    respuesta = client.get("/equipos", params={"estado": "baja"})
+    cuerpo = respuesta.json()
+    assert len(cuerpo) == 1
+    assert cuerpo[0]["numero_serie"] == "SN-002"
